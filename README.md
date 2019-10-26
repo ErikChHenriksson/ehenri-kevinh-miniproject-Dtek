@@ -27,7 +27,7 @@ RESTORE stores the contents of one block in the data-register
 
 ### CHIPKIT
  - [General pin descriptions](https://reference.digilentinc.com/chipkit_uno32/refmanual)
-
+ - [CHIPKIT serial communication](https://pic-microcontroller.com/chipkit-tutorial-2-serial-communication-pc/)
 
 ### RFID Shield
  - [Velleman reference manual](https://www.kjell.com/globalassets/mediaassets/745241_87046_manual_en.pdf?ref=F235D313D7)
