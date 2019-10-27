@@ -33,3 +33,4 @@ RESTORE stores the contents of one block in the data-register
  - [Velleman reference manual](https://www.kjell.com/globalassets/mediaassets/745241_87046_manual_en.pdf?ref=F235D313D7)
  - RFID.h and MFRC522.h from arduino library
  - PDF from arduino library (really good)
+ - [MFRC522 Documentation (Section 8.1 is about digital communication)](https://www.nxp.com/docs/en/data-sheet/MFRC522.pdf)
