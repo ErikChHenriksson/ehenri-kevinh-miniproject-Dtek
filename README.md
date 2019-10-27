@@ -28,9 +28,10 @@ RESTORE stores the contents of one block in the data-register
 ### CHIPKIT
  - [General pin descriptions](https://reference.digilentinc.com/chipkit_uno32/refmanual)
  - [CHIPKIT serial communication](https://pic-microcontroller.com/chipkit-tutorial-2-serial-communication-pc/)
+ - [Microship forum post about similar project](https://www.microchip.com/forums/m1060620.aspx)
 
 ### RFID Shield
  - [Velleman reference manual](https://www.kjell.com/globalassets/mediaassets/745241_87046_manual_en.pdf?ref=F235D313D7)
  - RFID.h and MFRC522.h from arduino library
  - PDF from arduino library (really good)
- - [MFRC522 Documentation](https://www.nxp.com/docs/en/data-sheet/MFRC522.pdf)(Section 8.1 is about digital communication)
+ - [MFRC522 Documentation](https://www.nxp.com/docs/en/data-sheet/MFRC522.pdf) (Section 8.1 is about digital communication)
