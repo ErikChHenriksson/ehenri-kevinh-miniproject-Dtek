@@ -35,3 +35,17 @@ RESTORE stores the contents of one block in the data-register
  - RFID.h and MFRC522.h from arduino library
  - PDF from arduino library (really good)
  - [MFRC522 Documentation](https://www.nxp.com/docs/en/data-sheet/MFRC522.pdf) (Section 8.1 is about digital communication)
+
+
+## Findings:
+
+page 32 of http://ww1.microchip.com/downloads/en/DeviceDoc/61143H.pdf has trise, porte references
+
+page 11 onwards of https://reference.digilentinc.com/_media/chipkit_uno32:chipkit_uno32_rm.pdf has pinout numbers for pic32
+
+This has basic io pin numbers https://reference.digilentinc.com/reference/add-ons/basic-io-shield/reference-manual
+
+Possibly useful referring to similar project: https://www.youtube.com/watch?v=rgERJZDBJyo  https://github.com/ljos/MFRC522
+
+
+
