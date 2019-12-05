@@ -209,7 +209,7 @@ void display_update(void)
   }
 }
 
-draw(int xstart, int xend, int ystart, int yend)
+void draw(int xstart, int xend, int ystart, int yend)
 {
   int row, col;
   for (row = xstart; row < xend; row++)
@@ -220,7 +220,30 @@ draw(int xstart, int xend, int ystart, int yend)
     }
   }
 }
-erase(int xstart, int xend, int ystart, int yend)
+
+void draw_line(int xstart, int ystart, int xend, int yend){
+  if(xstart > xend){  //If the points were given with the one with the greater x value first, switch them around.
+    int xtemp = xstart;
+    int ytemp = ystart;
+    xstart = xend;
+    ystart = yend;
+    xend = xtemp;
+    yend = ytemp;
+  }
+  float lutning = (yend-ystart)/(xend-xstart);
+  float yval;
+  int yvalapprox;
+  int row, col;
+
+  for (col = xstart; col <= xend; col++)
+  {
+    yval = (ystart + lutning*((float)col-(float)xstart));
+    yvalapprox = yval - (float)(int) yval < 0.5 ? (int) yval : (int) (yval + 0.5);
+    game_state[col][yvalapprox] = 1;
+  }
+}
+
+void erase(int xstart, int xend, int ystart, int yend)
 {
   {
     int row, col;

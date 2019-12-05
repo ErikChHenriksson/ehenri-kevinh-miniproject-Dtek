@@ -14,6 +14,10 @@ void display_string(int line, char *s);
 void display_update(void);
 uint8_t spi_send_recv(uint8_t data);
 
+void draw(int xstart, int xend, int ystart, int yend);
+void erase(int xstart, int xend, int ystart, int yend);
+void draw_line(int xstart, int xend, int ystart, int yend);
+
 /* Declare lab-related functions from mipslabfunc.c */
 char * itoaconv( int num );
 void labwork(void);
@@ -54,3 +58,5 @@ void time2string( char *, int );
 int getbtns(void);
 int getsw(void);
 void enable_interrupt(void);
+
+

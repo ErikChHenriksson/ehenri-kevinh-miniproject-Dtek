@@ -1,0 +1,1 @@
+-fno-short-double: vectors.S

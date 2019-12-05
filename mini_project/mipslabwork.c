@@ -85,13 +85,13 @@ void labwork(void)
   //BUTTON 4
   if ((buttons & 4 && (p1xpos) > 0))
   {
-    erase(p1xpos, p1xpos + 5, p1ypos, p1ypos + 5);
+    erase(p1xpos, p1xpos + 10, p1ypos, p1ypos + 5);
     p1xpos--;
   }
   //BUTTON 3
   if ((buttons & 2 && (p1xpos + 5) < 128))
   {
-    erase(p1xpos, p1xpos + 5, p1ypos, p1ypos + 5);
+    erase(p1xpos, p1xpos + 10, p1ypos, p1ypos + 5);
     p1xpos++;
   }
   //BUTTON 2
@@ -116,9 +116,9 @@ void labwork(void)
     //Draw projectile
     draw(projxpos, projxpos + 1, projypos, projypos + 1);
   }
-
+  draw_line(2, 4, 50, 20);
   //Draw player 1
-  draw(p1xpos, p1xpos + 5, p1ypos, p1ypos + 5);
+  draw(p1xpos, p1xpos + 10, p1ypos, p1ypos + 5);
   //Draw projectile
   display_update();
 }
