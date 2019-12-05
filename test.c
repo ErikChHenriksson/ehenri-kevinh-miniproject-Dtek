@@ -1,49 +1,109 @@
 #include <stdio.h>
 
-void convert(__uint8_t game_state[128][32]){
-    int i, j, k;
-    int eight_bit_encoding;
+struct Point{
+    int x;
+    int y;
+}points[2];
 
-    for(i=0; i<4; i++){ // for each screen quadrant
-        for(j=0; j<128; j++){ // for each column
+__uint8_t scene[16][8];
 
-        
-            // encode the column into 8-bits
-            eight_bit_encoding = 0
-            for(k=0; k<8; k++){
-                //printf("%u ", game_state[j][8*i + k]);
-                //printf("(%d, %d)", (j), (8*i + k));
-                eight_bit_encoding |= 1 << k;  //game_state[j][8*i + k] << k;
-                printf("  %u   ", eight_bit_encoding);
+// prints scene model
+void print_game(){
+    int x, y;
+    for(x=0; x<8; x++){
+        for(y=0; y<16; y++){
+            printf("%u ", scene[y][x]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
+
+int round(float num) { 
+    return num < 0 ? num - 0.5 : num + 0.5; 
+} 
+
+int abs(int num){
+    return num < 0 ? -1 * num : num;
+}
+
+// draw pixels along line between 2 points
+void draw_line(int xstart, int ystart, int xend, int yend){
+    float slope = (float)(yend - ystart) / (float)(xend - xstart);
+    int i;
+    int yapprox, xapprox;
+    float y; //holds current y value across iterations
+    float x; //holds current x value across iterations
+ 
+    // draw start and end pixels
+    scene[xstart][ystart] = 1;
+    scene[xend][yend] = 1;
+
+    if(abs(xend-xstart) > abs(yend-ystart)){ // more lines between x
+        if(xstart < xend){ // start at xstart and move forward
+            y = (float) ystart;
+            for(i = xstart+1; i < xend; i++){
+                y += slope;
+                yapprox = round(y);
+                scene[i][yapprox] = 1;
             }
-            printf("     encoded: %u\n", eight_bit_encoding);
+        }
+        else{ // start at xend and move backwards
+            y = (float) yend;
+            for(i = xend+1; i < xstart; i++){
+                y += slope;
+                yapprox = round(y);
+                scene[i][yapprox] = 1; 
+            }
         }
     }
+    else{ // more lines between y
+        if(ystart < yend){ // start at ystart and move forwards
+            x = (float) xstart;
+            for(i = ystart+1; i < yend; i++){
+                x += 1 / slope;
+                xapprox = round(x);
+                scene[xapprox][i] = 1;
+            }
+        }
+        else{ // start at yend and move backwards
+            x = (float) xend;
+            for(i = yend+1; i < ystart; i++){
+                x += 1 / slope;
+                xapprox = round(x);
+                scene[xapprox][i] = 1;
+            }
+        }
+   }
+}
+
+// Draws a shape defined as a list of points 
+// (draws a line from each point to the next in the array and finally from the last point to the first point)
+void draw_shape(int size, int pointarr[]){
+    int i;
+    for(i=0; i<(size*2)-2; i = i+2){ // draw a line from each point to the next
+        printf("(%d,%d) to (%d,%d)\n", i, i+1, i+2, i+3);
+        draw_line(pointarr[i], pointarr[i+1], pointarr[i+2], pointarr[i+3]);
+    }
+    draw_line(pointarr[size*2-2], pointarr[size*2-1], pointarr[0], pointarr[1]); // draw line from last point to first
 }
 
 
 int main(void){
-    int i; int j;
-    __uint8_t scene[128][32];
     
-   for(i=0; i<128; i++){
-       for(j=0; j<32; j++){
-           scene[i][j] = 1;
-       }
-   }
+    // set all pixels of screen to 0
+    int i; int j;
+    for(i=0; i<16; i++){
+        for(j=0; j<8; j++){
+            scene[i][j] = 0;
+        }
+    }
 
-
-    convert(scene);
-
-    //Xint z;
-    //Xfor(z=0; z < 10; z++){
-    //X    __uint8_t encode = 0;
-    //X    int k;
-    //X    for(k = 0; k<8; k++){
-    //X        encode |= 1 << k;
-    //X    }
-    //X    printf("%u\n", encode);
-    //X}
-
+    // create and draw a square
+    int square[] = {0,0, 5,0, 5,5, 0,5};
+    draw_shape(4, square);
+    print_game(scene);    
     return 0;
 }
+
