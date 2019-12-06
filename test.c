@@ -2,18 +2,30 @@
 
 const float PI = 3.1415926535;
 
-struct Point{
-    int x;
-    int y;
-}points[2];
+struct Ship{
+    float xcenter;
+    float ycenter;
+    float points[6];
+    float direction;
+};
 
-__uint8_t scene[16][8];
+struct Ship p1;
+
+void lab_init(){
+    p1.points[0] = 1;
+    p1.points[1] = 2;
+    p1.xcenter = get_center_x(3, p1.points);
+}
+
+
+
+__uint8_t scene[32][16];
 
 // prints scene model
 void print_game(){
     int x, y;
-    for(x=0; x<8; x++){
-        for(y=0; y<16; y++){
+    for(x=0; x<16; x++){
+        for(y=0; y<32; y++){
             printf("%u ", scene[y][x]);
         }
         printf("\n");
@@ -39,6 +51,16 @@ int random_int(int seed, int min, int max){
     seed = abs(seed);
     seed += min;
     return seed;
+}
+
+float sqroot(float square)
+{
+    float root=square/3;
+    int i;
+    if (square <= 0) return 0;
+    for (i=0; i<32; i++)
+        root = (root + square / root) / 2;
+    return root;
 }
 
 // cos estimation using taylor expansion
@@ -141,6 +163,28 @@ void draw_shape(int size, float pointarr[]){
     draw_line(pointarr[size*2-2], pointarr[size*2-1], pointarr[0], pointarr[1]); // draw line from last point to first
 }
 
+int get_center_x(int size, float pointarr[])
+{
+  int i;
+  float center_x = 0;
+  for (i = 0; i <= (size * 2) - 2; i = i + 2)
+  { // draw a line from each point to the next
+    center_x += pointarr[i];
+  }
+  return center_x / size;
+}
+
+int get_center_y(int size, float pointarr[])
+{
+  int i;
+  float center_y = 0;
+  for (i = 0; i <= (size * 2) - 2; i = i + 2)
+  { // draw a line from each point to the next
+    center_y += pointarr[i + 1];
+  }
+  return center_y / size;
+}
+
 
 void rotate(float angle, float xcenter, float ycenter, int size, float* pointarr){
     int i;
@@ -170,36 +214,77 @@ void rotate(float angle, float xcenter, float ycenter, int size, float* pointarr
     }
 }
 
+__uint8_t line_circle_collision(float xstart, float ystart, float xend, float yend, float xcircle, float ycircle, float rcircle){
+    __uint8_t projOnLine; // holds bool after proj is calculated
+    
+    // project onto line
+    float xline = xend - xstart;
+    float yline = yend - ystart;
+    float scale = ((xcircle - xstart) * xline) + ((ycircle - ystart) * yline);
+    scale /= (xline*xline) + (yline*yline);
+    float xD = (scale * xline) + xstart;
+    float yD = (scale * yline) + ystart;
+    //printf("projection: (%f,%f)\n", xD, yD);
+
+    float projdist = sqroot(((xcircle - xD)*(xcircle - xD)) + ((ycircle - yD)*(ycircle - yD)));
+    float startdist = sqroot(((xcircle - xstart)*(xcircle - xstart)) + ((ycircle - ystart)*(ycircle - ystart)));
+    float enddist = sqroot(((xcircle - xend)*(xcircle - xend)) + ((ycircle - yend)*(ycircle - yend)));
+    //printf("projdist: %f\n", projdist);
+    //printf("startdist: %f\n", startdist);
+    //printf("enddist: %f\n", enddist);
+
+   
+    if(xstart < xend){
+        projOnLine = (xD >= xstart) & (xD <= xend);
+    }
+    else{
+        projOnLine = (xD <= xstart) & (xD >= xend);  
+    }
+
+    // if end points are in circle
+    if(startdist <= rcircle || enddist <= rcircle){
+        return 1;
+    }
+    // if proj is in circle and in line segment
+    if((projdist <= rcircle) & projOnLine){
+        return 1;
+    }
+    else{
+        return 0;
+    }
+}
+
 
 int main(void){
     
     // set all pixels of screen to 0
     int i; int j;
-    for(i=0; i<16; i++){
-        for(j=0; j<8; j++){
+    for(i=0; i<32; i++){
+        for(j=0; j<16; j++){
             scene[i][j] = 0;
         }
     }
 
     // create and draw a square
-    float square[] = {0,0, 5,0, 5,5, 0,5};
-    draw_shape(4, square);
+    float square[] = {10, 3, 8, 13, 12, 13};
+    draw_shape(3, square);
     print_game(scene);
     printf("\n\n");
 
 
 
     // erase screen
-    for(i=0; i<16; i++){
-        for(j=0; j<8; j++){
+    for(i=0; i<32; i++){
+        for(j=0; j<16; j++){
             scene[i][j] = 0;
         }
     }
 
-    rotate(45, 2.5, 2.5, 4, &square);
-    draw_shape(4, square);
+    rotate(-5, get_center_x(3, square), get_center_y(3, square), 3, square);
+    draw_shape(3, square);
     print_game(scene);
 
+    printf("collision: %u\n", line_circle_collision(-2,1, 2,0, 0,0, 1));
     return 0;
 }
 
