@@ -8,6 +8,8 @@
 #include <pic32mx.h> /* Declarations of system-specific addresses etc */
 #include "mipslab.h" /* Declatations for these labs */
 
+const float PI = 3.1415926535;
+
 /* Declare a helper function which is local to this file */
 static void num32asc(char *s, int);
 
@@ -209,11 +211,145 @@ void display_update(void)
   }
 }
 
+//MATH FUNCTIONS HERE
+int abs(int num)
+{
+  return num < 0 ? -1 * num : num;
+}
 int round(float num)
 {
   return num < 0 ? num - 0.5 : num + 0.5;
 }
+// cos estimation using taylor expansion
+float cos(float deg)
+{
+  // convert to equivilant radian
+  if (deg < 0)
+    deg = -1 * deg;
+  if (deg > 360)
+    deg -= ((int)(deg / 360)) * 360; // mod 360
+  float rad = deg * PI / 180;
 
+  float res = 0;
+  float term = 1;
+  int k = 0;
+  while (res + term != res)
+  {
+    res += term;
+    k += 2;
+    term *= -1 * rad * rad / k / (k - 1);
+  }
+  return res;
+}
+
+// sin estimation using taylor expansion
+float sin(float deg)
+{
+  // convert to equilivant radian
+  float sign = 1;
+  if (deg < 0)
+  {
+    sign = -1;
+    deg = -1 * deg;
+  }
+  if (deg > 360)
+    deg -= ((int)deg / 360) * 360; // mod 360
+  float rad = deg * PI / 180;
+
+  float res = 0;
+  float term = rad;
+  int k = 1;
+  while (res + term != res)
+  {
+    res += term;
+    k += 2;
+    term *= -1 * rad * rad / k / (k - 1);
+  }
+  return sign * res;
+}
+
+//END MATH FUNCTIONS
+
+void rotate(float angle, float xcenter, float ycenter, int size, float *pointarr)
+{
+  int i;
+  float xcentered;
+  float xnew;
+  float ynew;
+  float c = cos(angle);
+  float s = sin(angle);
+
+  for (i = 0; i < size; i++)
+  {
+    xnew = *pointarr - xcenter;
+    xcentered = xnew;
+    pointarr += 1;
+    ynew = *pointarr - ycenter;
+
+    xnew = (c * xnew) - (s * ynew);
+    ynew = (s * xcentered) + (c * ynew);
+
+    *pointarr = ynew + ycenter;
+    pointarr -= 1;
+    *pointarr = xnew + xcenter;
+
+    pointarr += 2; // point to next coord's x
+  }
+}
+
+uint8_t move(float angle, float magnitude, int size, float *pointarr)
+{
+  int i;
+  float motion_x = magnitude * cos(angle);
+  float motion_y = magnitude * sin(angle);
+  float new_val;
+
+  for (i = 0; i < size; i++)
+  {
+    //X value
+    new_val = *pointarr + motion_x;
+    if (new_val < 0 || new_val > 127)
+    {
+      return 0;
+    }
+    *pointarr = new_val;
+
+    pointarr += 1; //Move on to y value
+    new_val = *pointarr + motion_y;
+    if (new_val < 0 || new_val > 31)
+    {
+      return 0;
+    }
+    *pointarr = new_val;
+    pointarr += 1;
+  }
+  return 1;
+}
+
+uint8_t shape_within_bounds(int size, float *pointarr)
+{
+
+  int i;
+
+  for (i = 0; i < size; i++)
+  {
+    //X value
+    if (*pointarr < 0 || *pointarr > 127)
+    {
+      return 0;
+    }
+
+    pointarr += 1; //Move on to y value
+    if (*pointarr < 0 || *pointarr > 31)
+    {
+      return 0;
+    }
+    pointarr += 1;
+  }
+  return 1;
+}
+
+//DRAW FUNCTIONS HERE
 void draw(float xstart, float xend, float ystart, float yend, uint8_t color)
 {
   int row, col;
@@ -224,12 +360,6 @@ void draw(float xstart, float xend, float ystart, float yend, uint8_t color)
       game_state[row][col] = color;
     }
   }
-}
-
-
-int abs(int num)
-{
-  return num < 0 ? -1 * num : num;
 }
 
 // draw pixels along line between 2 points
@@ -325,6 +455,8 @@ int get_center_y(int size, float pointarr[])
   }
   return center_y / size;
 }
+
+//END DRAW FUNCTIONS
 
 /* Helper function, local to this file.
    Converts a number to hexadecimal ASCII digits. */

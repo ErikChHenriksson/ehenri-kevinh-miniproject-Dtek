@@ -16,6 +16,7 @@ uint8_t spi_send_recv(uint8_t data);
 
 void draw(float xstart, float xend, float ystart, float yend, uint8_t color);
 void draw_line(float xstart, float xend, float ystart, float yend, uint8_t color);
+void draw_shape(int size, float pointarr[], uint8_t color);
 
 /* Declare lab-related functions from mipslabfunc.c */
 char * itoaconv( int num );
@@ -23,6 +24,19 @@ void labwork(void);
 int nextprime( int inval );
 void quicksleep(int cyc);
 void tick( unsigned int * timep );
+
+extern const float PI;
+int abs(int num);
+int round(float num);
+float cos(float deg);
+float sin(float deg);
+void rotate(float angle, float xcenter, float ycenter, int size, float* pointarr);
+uint8_t move(float angle, float magnitude, int size, float* pointarr);
+uint8_t shape_within_bounds(int size, float* pointarr);
+int get_center_x(int size, float pointarr[]);
+int get_center_y(int size, float pointarr[]);
+
+
 
 /* Declare display_debug - a function to help debugging.
 
