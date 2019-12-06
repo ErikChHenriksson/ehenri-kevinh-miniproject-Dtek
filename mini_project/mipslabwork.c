@@ -8,6 +8,8 @@
 
    This file modified 2017-04-31 by Ture Teknolog 
 
+    float p1middlex = get_center_x(3, p1);
+    float p1middley = get_center_y(3, p1);
    For copyright and licensing, see file COPYING */
 
 #include <stdint.h>  /* Declarations of uint_32 and the like */
@@ -19,8 +21,10 @@ int timeoutcount = 0;
 uint8_t game_state[128][32];
 //Player 1
 float p1[] = {64, 12, 61, 22, 67, 22};
+float p1angle = 270;
 
-int projxpos, projypos;
+float proj[] = {-1, -1, -1, -1};
+float projangle;
 int ammo = 0xff; //To fill RE0 to RE7 LEDs
 int reloading = 0;
 
@@ -92,66 +96,72 @@ void labwork(void)
   int buttons = getbtns();
   int switches = getsw();
   //BUTTON 4
-  if ((buttons & 4 && (p1[2]) > 0))
+  if ((buttons & 4))
   {
-    draw_shape(3, p1, 0);
-    p1[0]--;
-    p1[2]--;
-    p1[4]--;
+    draw_shape(3, p1, 0); //Erase old drawing of p1
+    rotate(-2, 64, 18.666666667, 3, &p1);
+    p1angle -= 2;
   }
   //BUTTON 3
-  if ((buttons & 2 && (p1[4]) < 127))
+  if ((buttons & 2))
   {
-    draw_shape(3, p1, 0);
-    p1[0]++;
-    p1[2]++;
-    p1[4]++;
+    draw_shape(3, p1, 0); //Erase old drawing of p1
+    rotate(2, 64, 18.666666667, 3, &p1);
+    p1angle += 2;
   }
+
   //BUTTON 2
-  if ((buttons & 1) && projypos <= 0 && reloading == 0) //Attempt to fire projectile. (may only have one projectile on the screen at any time)
+  if ((buttons & 1) && shape_within_bounds(2, proj) == 0 && reloading == 0) //Attempt to fire projectile. (may only have one projectile on the screen at any time)
   {
-    projxpos = p1[0];
-    projypos = p1[1];
-    ;
+    //Erase old projectile
+    draw_shape(2, proj, 0);
+    proj[0] = p1[0];
+    proj[1] = p1[1];
+    proj[2] = p1[0] + 1;
+    proj[3] = p1[1] + 1;
+    projangle = p1angle;
 
     //Update ammo
-    if (ammo <= 1)
+    ammo = ammo >> 1;
+    if (ammo <= 0)
     {
-      ammo = ammo >> 1;
       reloading = 1;
       timeoutcount = 0;
-    }
-    else
-    {
-      ammo = ammo >> 1;
     }
     PORTECLR = 0xff;
     PORTESET = ammo;
   }
-  else if (projypos <= 0)
+  else if (shape_within_bounds(2, proj) == 1)
+  //CHECKS YVALS THEN XVALS
   {
-    draw(projxpos, projxpos + 1, projypos, projypos + 1, 0);
-  }
-  else
-  {
+    //Erase old projectile
+    draw_shape(2, proj, 0);
     //Move projectile
-    draw(projxpos, projxpos + 1, projypos, projypos + 1, 0);
-    projypos--;
-    //Draw projectile
-    draw(projxpos, projxpos + 1, projypos, projypos + 1, 1);
+    if (move(projangle, 1, 2, &proj) == 1)
+    {
+      //Draw projectile
+        draw_shape(2, proj, 1);
+    }
+    else
+    {
+      proj[0] = -1;
+      proj[1] = -1;
+      proj[2] = -1;
+      proj[3] = -1;
+    }
   }
 
   //Test draw line
   // create and draw a square
-  float square[] = {2, 2, 32, 2, 32, 30, 2, 30};
+  /* float square[] = {2, 2, 32, 2, 32, 30, 2, 30};
   draw_shape(4, square, 1);
   float squarecenterx = get_center_x(4, square);
   float squarecentery = get_center_y(4, square);
-  draw(squarecenterx, squarecenterx + 1, squarecentery, squarecentery + 1, 1);
+  draw(squarecenterx, squarecenterx + 1, squarecentery, squarecentery + 1, 1); */
   //Draw player 1
   draw_shape(3, p1, 1);
-  float p1centerx = get_center_x(3, p1);
+  /* float p1centerx = get_center_x(3, p1);
   float p1centery = get_center_y(3, p1);
-  draw(p1centerx, p1centerx + 1, p1centery, p1centery + 1, 1);
+  draw(p1centerx, p1centerx + 1, p1centery, p1centery + 1, 1); */
   display_update();
 }
