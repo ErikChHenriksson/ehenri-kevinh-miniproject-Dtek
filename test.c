@@ -28,6 +28,17 @@ int abs(int num){
     return num < 0 ? -1 * num : num;
 }
 
+// generates a random number between min (inclusive) and max (exclusive)
+int random_int(int seed, int min, int max){
+    seed ^= (seed << 13);
+    seed ^= (seed >> 7);
+    seed ^= (seed << 17);
+    seed %= max - min;
+    seed = abs(seed);
+    seed += min;
+    return seed;
+}
+
 // draw pixels along line between 2 points
 void draw_line(int xstart, int ystart, int xend, int yend){
     float slope = (float)(yend - ystart) / (float)(xend - xstart);
@@ -90,6 +101,8 @@ void draw_shape(int size, int pointarr[]){
 }
 
 
+
+
 int main(void){
     
     // set all pixels of screen to 0
@@ -103,7 +116,13 @@ int main(void){
     // create and draw a square
     int square[] = {0,0, 5,0, 5,5, 0,5};
     draw_shape(4, square);
-    print_game(scene);    
+    print_game(scene);
+
+    int y;
+    for(y=1; y<10; y++){
+        printf("%d\n",random_int(i, 0, 2));
+    }
+
     return 0;
 }
 
