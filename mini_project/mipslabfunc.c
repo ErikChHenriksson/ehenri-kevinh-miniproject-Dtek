@@ -209,52 +209,121 @@ void display_update(void)
   }
 }
 
-void draw(int xstart, int xend, int ystart, int yend)
+int round(float num)
+{
+  return num < 0 ? num - 0.5 : num + 0.5;
+}
+
+void draw(float xstart, float xend, float ystart, float yend, uint8_t color)
 {
   int row, col;
-  for (row = xstart; row < xend; row++)
+  for (row = round(xstart); row < round(xend); row++)
   {
-    for (col = ystart; col < yend; col++)
+    for (col = round(ystart); col < round(yend); col++)
     {
-      game_state[row][col] = 1;
+      game_state[row][col] = color;
     }
   }
 }
 
-void draw_line(int xstart, int ystart, int xend, int yend){
-  if(xstart > xend){  //If the points were given with the one with the greater x value first, switch them around.
-    int xtemp = xstart;
-    int ytemp = ystart;
-    xstart = xend;
-    ystart = yend;
-    xend = xtemp;
-    yend = ytemp;
-  }
-  float lutning = (yend-ystart)/(xend-xstart);
-  float yval;
-  int yvalapprox;
-  int row, col;
 
-  for (col = xstart; col <= xend; col++)
-  {
-    yval = (ystart + lutning*((float)col-(float)xstart));
-    yvalapprox = yval - (float)(int) yval < 0.5 ? (int) yval : (int) (yval + 0.5);
-    game_state[col][yvalapprox] = 1;
-  }
+int abs(int num)
+{
+  return num < 0 ? -1 * num : num;
 }
 
-void erase(int xstart, int xend, int ystart, int yend)
+// draw pixels along line between 2 points
+void draw_line(float xstart, float ystart, float xend, float yend, uint8_t color)
 {
-  {
-    int row, col;
-    for (row = xstart; row < xend; row++)
-    {
-      for (col = ystart; col < yend; col++)
+  float slope = (yend - ystart) / (xend - xstart);
+  int i;
+  int yapprox, xapprox;
+  float y; //holds current y value across iterations
+  float x; //holds current x value across iterations
+
+  // draw start and end pixels
+  game_state[round(xstart)][round(ystart)] = color;
+  game_state[round(xend)][round(yend)] = color;
+
+  if (abs(xend - xstart) > abs(yend - ystart))
+  { // more lines between x
+    if (xstart < xend)
+    { // start at xstart and move forward
+      y = ystart;
+      for (i = xstart + 1; i < xend; i++)
       {
-        game_state[row][col] = 0;
+        y += slope;
+        yapprox = round(y);
+        game_state[i][yapprox] = color;
+      }
+    }
+    else
+    { // start at xend and move backwards
+      y = yend;
+      for (i = xend + 1; i < xstart; i++)
+      {
+        y += slope;
+        yapprox = round(y);
+        game_state[i][yapprox] = color;
       }
     }
   }
+  else
+  { // more lines between y
+    if (ystart < yend)
+    { // start at ystart and move forwards
+      x = xstart;
+      for (i = ystart + 1; i < yend; i++)
+      {
+        x += 1 / slope;
+        xapprox = round(x);
+        game_state[xapprox][i] = color;
+      }
+    }
+    else
+    { // start at yend and move backwards
+      x = xend;
+      for (i = yend + 1; i < ystart; i++)
+      {
+        x += 1 / slope;
+        xapprox = round(x);
+        game_state[xapprox][i] = color;
+      }
+    }
+  }
+}
+
+// Draws a shape defined as a list of points
+// (draws a line from each point to the next in the array and finally from the last point to the first point)
+void draw_shape(int size, float pointarr[], uint8_t color)
+{
+  int i;
+  for (i = 0; i < (size * 2) - 2; i = i + 2)
+  { // draw a line from each point to the next
+    draw_line(pointarr[i], pointarr[i + 1], pointarr[i + 2], pointarr[i + 3], color);
+  }
+  draw_line(pointarr[size * 2 - 2], pointarr[size * 2 - 1], pointarr[0], pointarr[1], color); // draw line from last point to first
+}
+
+int get_center_x(int size, float pointarr[])
+{
+  int i;
+  float center_x = 0;
+  for (i = 0; i <= (size * 2) - 2; i = i + 2)
+  { // draw a line from each point to the next
+    center_x += pointarr[i];
+  }
+  return center_x / size;
+}
+int get_center_y(int size, float pointarr[])
+{
+  int i;
+  float center_y = 0;
+  for (i = 0; i <= (size * 2) - 2; i = i + 2)
+  { // draw a line from each point to the next
+    center_y += pointarr[i + 1];
+  }
+  return center_y / size;
 }
 
 /* Helper function, local to this file.

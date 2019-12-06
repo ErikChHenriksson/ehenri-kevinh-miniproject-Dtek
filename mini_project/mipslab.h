@@ -14,9 +14,8 @@ void display_string(int line, char *s);
 void display_update(void);
 uint8_t spi_send_recv(uint8_t data);
 
-void draw(int xstart, int xend, int ystart, int yend);
-void erase(int xstart, int xend, int ystart, int yend);
-void draw_line(int xstart, int xend, int ystart, int yend);
+void draw(float xstart, float xend, float ystart, float yend, uint8_t color);
+void draw_line(float xstart, float xend, float ystart, float yend, uint8_t color);
 
 /* Declare lab-related functions from mipslabfunc.c */
 char * itoaconv( int num );

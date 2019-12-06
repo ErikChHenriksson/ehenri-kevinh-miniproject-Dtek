@@ -17,32 +17,12 @@
 int timeoutcount = 0;
 //Array chowing the current state of the game
 uint8_t game_state[128][32];
-//Position of player1
-int p1xpos = 62;
-int p1ypos = 14;
+//Player 1
+float p1[] = {64, 12, 61, 22, 67, 22};
+
 int projxpos, projypos;
-int potRead = 0;
-int potVal = 0;  //Mapped Value of Pot
-int lastPot = 0; //last value of Pot Stored
-
-/* Interrupt Service Routine */
-void user_isr(void)
-{
-  if (IFS(0) & 0x100)
-  { // if TM2 flag
-    timeoutcount += 1;
-    IFS(0) ^= 0x100; // reset TM2 flag
-
-    if (timeoutcount == 10)
-    {
-      timeoutcount = 0;
-    }
-  }
-  if (IFS(0) & 0x800)
-  {                  // if INT2 flag
-    IFS(0) ^= 0x100; //reset INT2 flag
-  }
-}
+int ammo = 0xff; //To fill RE0 to RE7 LEDs
+int reloading = 0;
 
 /* Lab-specific initialization goes here */
 void labinit(void)
@@ -61,18 +41,47 @@ void labinit(void)
 
   TRISD |= 0xfe0; // set bits 5-11 of PORTD to input mode
 
-  TRISA |= 1; //Initialize PORTA0 as input    USED FOR POTENTIOMETER
+  TRISECLR = 0xff; //Set RE0 to RE7, LED lights, to outputs.
+  PORTESET = 0xff; //Show initial ammo. Fill all LED lights.
 
+  TMR2 = 0x0;
   T2CON = 0x70;                // reset timer,stop it and set scale to 1:256
   PR2 = (80000000 / 256) / 10; // set period register
-  TMR2 = 0x0;                  // reset timer
-  T2CONSET = 0x8000;           // turn on timer
+  //The clock rate of the board is 80MHz
+  // which we know from the lecture
+  // so we need a prescaler division of 256 in order
+  // to make the number small enough for the 16bit
+  // timer
+  T2CONSET = 0x8000; //Turn on timer
 
   IEC(0) |= 0x100;    // set T2IE to enable TMR2 interrupt
   IEC(0) |= 0x800;    // enable INT2 interrupt
   IPC(2) = 4;         // set priority for TMR2 interrupt
   enable_interrupt(); // enable interrupts globally
   return;
+}
+
+/* Interrupt Service Routine */
+void user_isr(void)
+{
+  if (IFS(0) & 0x100)
+  {
+    //Our added code on top
+    timeoutcount += 1;
+    IFS(0) ^= 0x100; // Reset TMR2 event flags
+    if (timeoutcount == 10 && reloading == 1)
+    {
+      reloading = 0;
+      ammo = 0xff;
+      PORTESET = ammo;
+      timeoutcount = 0;
+    }
+  }
+  if (IFS(0) & 0x800)
+  {
+
+    IFS(0) ^= 0x800; //Reset INT@ flag
+  }
 }
 
 /* This function is called repetitively from the main program */
@@ -83,42 +92,66 @@ void labwork(void)
   int buttons = getbtns();
   int switches = getsw();
   //BUTTON 4
-  if ((buttons & 4 && (p1xpos) > 0))
+  if ((buttons & 4 && (p1[2]) > 0))
   {
-    erase(p1xpos, p1xpos + 10, p1ypos, p1ypos + 5);
-    p1xpos--;
+    draw_shape(3, p1, 0);
+    p1[0]--;
+    p1[2]--;
+    p1[4]--;
   }
   //BUTTON 3
-  if ((buttons & 2 && (p1xpos + 5) < 128))
+  if ((buttons & 2 && (p1[4]) < 127))
   {
-    erase(p1xpos, p1xpos + 10, p1ypos, p1ypos + 5);
-    p1xpos++;
+    draw_shape(3, p1, 0);
+    p1[0]++;
+    p1[2]++;
+    p1[4]++;
   }
   //BUTTON 2
-  if ((buttons & 1))
+  if ((buttons & 1) && projypos <= 0 && reloading == 0) //Attempt to fire projectile. (may only have one projectile on the screen at any time)
   {
-    projxpos = p1xpos + 2;
-    projypos = p1ypos - 1;
+    projxpos = p1[0];
+    projypos = p1[1];
+    ;
+
+    //Update ammo
+    if (ammo <= 1)
+    {
+      ammo = ammo >> 1;
+      reloading = 1;
+      timeoutcount = 0;
+    }
+    else
+    {
+      ammo = ammo >> 1;
+    }
+    PORTECLR = 0xff;
+    PORTESET = ammo;
   }
-  else if (projypos > 0)
+  else if (projypos <= 0)
   {
-    //Move projectile
-    erase(projxpos, projxpos + 1, projypos, projypos + 1);
-    projypos--;
-    projxpos++;
-  }
-  if (projypos == 0)
-  {
-    erase(projxpos, projxpos + 1, projypos, projypos + 1);
+    draw(projxpos, projxpos + 1, projypos, projypos + 1, 0);
   }
   else
   {
+    //Move projectile
+    draw(projxpos, projxpos + 1, projypos, projypos + 1, 0);
+    projypos--;
     //Draw projectile
-    draw(projxpos, projxpos + 1, projypos, projypos + 1);
+    draw(projxpos, projxpos + 1, projypos, projypos + 1, 1);
   }
-  draw_line(2, 4, 50, 20);
+
+  //Test draw line
+  // create and draw a square
+  float square[] = {2, 2, 32, 2, 32, 30, 2, 30};
+  draw_shape(4, square, 1);
+  float squarecenterx = get_center_x(4, square);
+  float squarecentery = get_center_y(4, square);
+  draw(squarecenterx, squarecenterx + 1, squarecentery, squarecentery + 1, 1);
   //Draw player 1
-  draw(p1xpos, p1xpos + 10, p1ypos, p1ypos + 5);
-  //Draw projectile
+  draw_shape(3, p1, 1);
+  float p1centerx = get_center_x(3, p1);
+  float p1centery = get_center_y(3, p1);
+  draw(p1centerx, p1centerx + 1, p1centery, p1centery + 1, 1);
   display_update();
 }
