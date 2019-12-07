@@ -268,6 +268,29 @@ float sin(float deg)
   return sign * res;
 }
 
+// generates a random number between min (inclusive) and max (exclusive)
+int random_int(int min, int max){
+    int seed = TMR2 & 0xffff;
+    seed == 0 ? seed = 1: 1;
+    seed ^= (seed << 13);
+    seed ^= (seed >> 7);
+    seed ^= (seed << 17);
+    seed %= max - min;
+    seed = abs(seed);
+    seed += min;
+    return seed;
+}
+
+float sqroot(float square)
+{
+    float root=square/3;
+    int i;
+    if (square <= 0) return 0;
+    for (i=0; i<32; i++)
+        root = (root + square / root) / 2;
+    return root;
+}
+
 //END MATH FUNCTIONS
 
 void rotate(float angle, float xcenter, float ycenter, int size, float *pointarr)
@@ -297,20 +320,63 @@ void rotate(float angle, float xcenter, float ycenter, int size, float *pointarr
   }
 }
 
+uint8_t line_circle_collision(float xstart, float ystart, float xend, float yend, float xcircle, float ycircle, float rcircle){
+    uint8_t projOnLine; // holds bool after proj is calculated
+    
+    // project onto line
+    float xline = xend - xstart;
+    float yline = yend - ystart;
+    float scale = ((xcircle - xstart) * xline) + ((ycircle - ystart) * yline);
+    scale /= (xline*xline) + (yline*yline);
+    float xD = (scale * xline) + xstart;
+    float yD = (scale * yline) + ystart;
+    //printf("projection: (%f,%f)\n", xD, yD);
+
+    float projdist = sqroot(((xcircle - xD)*(xcircle - xD)) + ((ycircle - yD)*(ycircle - yD)));
+    float startdist = sqroot(((xcircle - xstart)*(xcircle - xstart)) + ((ycircle - ystart)*(ycircle - ystart)));
+    float enddist = sqroot(((xcircle - xend)*(xcircle - xend)) + ((ycircle - yend)*(ycircle - yend)));
+    //printf("projdist: %f\n", projdist);
+    //printf("startdist: %f\n", startdist);
+    //printf("enddist: %f\n", enddist);
+
+   
+    if(xstart < xend){
+        projOnLine = (xD >= xstart) & (xD <= xend);
+    }
+    else{
+        projOnLine = (xD <= xstart) & (xD >= xend);  
+    }
+
+    // if end points are in circle
+    if(startdist <= rcircle || enddist <= rcircle){
+        return 1;
+    }
+    // if proj is in circle and in line segment
+    if((projdist <= rcircle) & projOnLine){
+        return 1;
+    }
+    else{
+        return 0;
+    }
+}
+
 uint8_t move(float angle, float magnitude, int size, float *pointarr)
 {
   int i;
+  int offscreen, outofbounds;
   float motion_x = magnitude * cos(angle);
   float motion_y = magnitude * sin(angle);
   float new_val;
 
   for (i = 0; i < size; i++)
   {
+    //Assume out of bounds
+    outofbounds=0;
     //X value
     new_val = *pointarr + motion_x;
     if (new_val < 0 || new_val > 127)
     {
-      return 0;
+      outofbounds = 1;  //edge is out of bounds
     }
     *pointarr = new_val;
 
@@ -318,10 +384,14 @@ uint8_t move(float angle, float magnitude, int size, float *pointarr)
     new_val = *pointarr + motion_y;
     if (new_val < 0 || new_val > 31)
     {
-      return 0;
+      outofbounds = 1;;
     }
     *pointarr = new_val;
     pointarr += 1;
+    offscreen+= outofbounds;  //Increment out of bounds counter
+  }
+  if (offscreen == size){
+    return 0; //All edges are off screen.
   }
   return 1;
 }
@@ -371,9 +441,9 @@ void draw_line(float xstart, float ystart, float xend, float yend, uint8_t color
   float y; //holds current y value across iterations
   float x; //holds current x value across iterations
 
-  // draw start and end pixels
-  game_state[round(xstart)][round(ystart)] = color;
-  game_state[round(xend)][round(yend)] = color;
+  // draw start and end pixels if they are on the screen
+  if(round(xstart)>=0 & round(xstart)<128 & round(ystart)>=0 & round(ystart)<32) game_state[round(xstart)][round(ystart)] = color;
+  if(round(xend)>=0 & round(xend)<128 & round(yend)>=0 & round(yend)<32) game_state[round(xend)][round(yend)] = color;
 
   if (abs(xend - xstart) > abs(yend - ystart))
   { // more lines between x
@@ -384,7 +454,7 @@ void draw_line(float xstart, float ystart, float xend, float yend, uint8_t color
       {
         y += slope;
         yapprox = round(y);
-        game_state[i][yapprox] = color;
+        if(i>=0 & i<128 & yapprox>=0 & yapprox<32) game_state[i][yapprox] = color;
       }
     }
     else
@@ -394,7 +464,7 @@ void draw_line(float xstart, float ystart, float xend, float yend, uint8_t color
       {
         y += slope;
         yapprox = round(y);
-        game_state[i][yapprox] = color;
+        if(i>=0 & i<128 & yapprox>=0 & yapprox<32) game_state[i][yapprox] = color;
       }
     }
   }
@@ -407,7 +477,7 @@ void draw_line(float xstart, float ystart, float xend, float yend, uint8_t color
       {
         x += 1 / slope;
         xapprox = round(x);
-        game_state[xapprox][i] = color;
+        if(xapprox>=0 & xapprox<128 & i>=0 & i<32) game_state[xapprox][i] = color;
       }
     }
     else
@@ -417,7 +487,7 @@ void draw_line(float xstart, float ystart, float xend, float yend, uint8_t color
       {
         x += 1 / slope;
         xapprox = round(x);
-        game_state[xapprox][i] = color;
+        if(xapprox>=0 & xapprox<128 & i>=0 & i<32) game_state[xapprox][i] = color;
       }
     }
   }

@@ -8,13 +8,14 @@
 
    This file modified 2017-04-31 by Ture Teknolog 
 
-    float p1middlex = get_center_x(3, p1);
-    float p1middley = get_center_y(3, p1);
    For copyright and licensing, see file COPYING */
 
 #include <stdint.h>  /* Declarations of uint_32 and the like */
 #include <pic32mx.h> /* Declarations of system-specific addresses etc */
 #include "mipslab.h" /* Declatations for these labs */
+
+#define NUM_PROJS 3
+#define NUM_AST 1
 
 int timeoutcount = 0;
 //Array chowing the current state of the game
@@ -23,25 +24,72 @@ uint8_t game_state[128][32];
 float p1[] = {64, 12, 61, 22, 67, 22};
 float p1angle = 270;
 
-float proj[] = {-1, -1, -1, -1};
-float projangle;
-int ammo = 0xff; //To fill RE0 to RE7 LEDs
-int reloading = 0;
+struct proj
+{
+  uint8_t num_edges;
+  float pointarr[4];
+  float direction;
+  float speed;
+  uint8_t onscreen;
+} projs[NUM_PROJS];
+
+struct asteroid
+{
+  uint8_t num_edges;
+  float pointarr[10];
+  float direction;
+  float speed;
+  uint8_t active;
+  float radius;
+  float center_x;
+  float center_y;
+} ast[NUM_AST];
+
+//float staticasteroid[] = {120, 10, 125, 13, 123, 20, 117, 20, 115, 13};
+
+uint8_t ammo = 0xff; //To fill RE0 to RE7 LEDs
+uint8_t reloading = 0;
+uint8_t shootingdelay = 0;
 
 /* Lab-specific initialization goes here */
 void labinit(void)
 {
+  //Setup projectiles
   int i, j;
-  /* for (i = 0; i < 128; i++)
+  for (i = 0; i < NUM_PROJS; i++)
   {
-    for (j = 0; j < 32; j++)
+    projs[i].num_edges = 2;
+    for (j = 0; j < 4; j++)
     {
-      if (j == 3)
-      {
-        game_state[i][j] = 1;
-      }
+      projs[i].pointarr[j] = -1; //All projectiles start outside of the screen.
     }
-  } */
+    projs[i].direction = 0;
+    projs[i].speed = 1;
+    projs[i].onscreen = 0;
+  }
+  //Positions of first asteroid
+  ast[1].pointarr[0] = 110;
+  ast[1].pointarr[1] = 10;
+  ast[1].pointarr[2] = 115;
+  ast[1].pointarr[3] = 15;
+  ast[1].pointarr[4] = 112;
+  ast[1].pointarr[5] = 22;
+  ast[1].pointarr[6] = 108;
+  ast[1].pointarr[7] = 22;
+  ast[1].pointarr[8] = 105;
+  ast[1].pointarr[9] = 15;
+  //Setup asteroids
+  int k;
+  for (k = 0; k < NUM_AST; k++)
+  {
+    ast[k].num_edges = 5;
+    ast[k].direction = 180;
+    ast[k].speed = 1;
+    ast[k].active = 1;
+    ast[k].center_x = get_center_x(ast[k].num_edges, ast[k].pointarr);
+    ast[k].center_y = get_center_y(ast[k].num_edges, ast[k].pointarr);
+    ast[k].radius = ast[k].center_y - ast[k].pointarr[1];
+  }
 
   TRISD |= 0xfe0; // set bits 5-11 of PORTD to input mode
 
@@ -70,7 +118,9 @@ void user_isr(void)
 {
   if (IFS(0) & 0x100)
   {
-    //Our added code on top
+    //For the short delay between shots
+    shootingdelay = shootingdelay >> 1;
+    //For reloadding:
     timeoutcount += 1;
     IFS(0) ^= 0x100; // Reset TMR2 event flags
     if (timeoutcount == 10 && reloading == 1)
@@ -83,8 +133,7 @@ void user_isr(void)
   }
   if (IFS(0) & 0x800)
   {
-
-    IFS(0) ^= 0x800; //Reset INT@ flag
+    IFS(0) ^= 0x800; //Reset INT2 interrupt flag
   }
 }
 
@@ -99,69 +148,111 @@ void labwork(void)
   if ((buttons & 4))
   {
     draw_shape(3, p1, 0); //Erase old drawing of p1
-    rotate(-2, 64, 18.666666667, 3, &p1);
+    rotate(-2, 64, 18.666666667, 3, p1);
     p1angle -= 2;
   }
   //BUTTON 3
   if ((buttons & 2))
   {
     draw_shape(3, p1, 0); //Erase old drawing of p1
-    rotate(2, 64, 18.666666667, 3, &p1);
+    rotate(2, 64, 18.666666667, 3, p1);
     p1angle += 2;
   }
 
   //BUTTON 2
-  if ((buttons & 1) && shape_within_bounds(2, proj) == 0 && reloading == 0) //Attempt to fire projectile. (may only have one projectile on the screen at any time)
+  if ((buttons & 1) && shootingdelay == 0 && reloading == 0) //Attempt to fire projectile.
   {
-    //Erase old projectile
-    draw_shape(2, proj, 0);
-    proj[0] = p1[0];
-    proj[1] = p1[1];
-    proj[2] = p1[0] + 1;
-    proj[3] = p1[1] + 1;
-    projangle = p1angle;
+    //Fins available bullet
+    int i;
+    int bulletindex = -1;
+    for (i = 0; i < NUM_PROJS; i++)
+    {
+      if (projs[i].onscreen == 0)
+      {
+        bulletindex = i;
+        break;
+      }
+    }
+    if (bulletindex != -1) //Bullet found
+    {
+      //Shot successfully fired
+      shootingdelay = 0x1;
+      //Move proj to tip of p1
+      projs[bulletindex].pointarr[0] = p1[0];
+      projs[bulletindex].pointarr[1] = p1[1];
+      projs[bulletindex].pointarr[2] = p1[0] + 1;
+      projs[bulletindex].pointarr[3] = p1[1] + 1;
+      projs[bulletindex].direction = p1angle;
+      //projectile is on screen
+      projs[bulletindex].onscreen = 1;
 
-    //Update ammo
-    ammo = ammo >> 1;
-    if (ammo <= 0)
-    {
-      reloading = 1;
-      timeoutcount = 0;
-    }
-    PORTECLR = 0xff;
-    PORTESET = ammo;
-  }
-  else if (shape_within_bounds(2, proj) == 1)
-  //CHECKS YVALS THEN XVALS
-  {
-    //Erase old projectile
-    draw_shape(2, proj, 0);
-    //Move projectile
-    if (move(projangle, 1, 2, &proj) == 1)
-    {
-      //Draw projectile
-        draw_shape(2, proj, 1);
-    }
-    else
-    {
-      proj[0] = -1;
-      proj[1] = -1;
-      proj[2] = -1;
-      proj[3] = -1;
+      //Update ammo
+      ammo = ammo >> 1;
+      if (ammo <= 0)
+      {
+        reloading = 1;
+        timeoutcount = 0;
+      }
+      PORTECLR = 0xff;
+      PORTESET = ammo;
     }
   }
 
-  //Test draw line
-  // create and draw a square
-  /* float square[] = {2, 2, 32, 2, 32, 30, 2, 30};
-  draw_shape(4, square, 1);
-  float squarecenterx = get_center_x(4, square);
-  float squarecentery = get_center_y(4, square);
-  draw(squarecenterx, squarecenterx + 1, squarecentery, squarecentery + 1, 1); */
+  //MOVE PROJECTILES
+  int i;
+  for (i = 0; i < NUM_PROJS; i++)
+  {
+    //Move only onscreen projectiles
+    if (projs[i].onscreen == 1)
+    {
+      //Erase old projectile
+      draw_shape(projs[i].num_edges, projs[i].pointarr, 0);
+      //Move projectile if projectile is going to be within bounds
+      if (move(projs[i].direction, projs[i].speed, projs[i].num_edges, projs[i].pointarr) == 1) //If 1, has been moved.
+      {
+        //Draw projectile
+        draw_shape(projs[i].num_edges, projs[i].pointarr, 1);
+
+        if (line_circle_collision(projs[i].pointarr[0], projs[i].pointarr[1], projs[i].pointarr[2], projs[i].pointarr[3], ast[0].center_x, ast[0].center_y, ast[0].radius))
+        {
+          ammo = 0xff;
+          PORTESET = ammo;
+        }
+      }
+      else //move() func returned 0, which means proj would have been moved outside the screen. Move proj to default and do not draw. Set as off screen.
+      {
+        //Move proj off screen
+        projs[i].pointarr[0] = -1;
+        projs[i].pointarr[1] = -1;
+        projs[i].pointarr[2] = -1;
+        projs[i].pointarr[3] = -1;
+        //projectile is off screen
+        projs[i].onscreen = 0;
+      }
+    }
+  }
+
+  // MOVE ASTEROID
+  //Erase
+
+  //Move and draw if successfully moved.
+  for (i = 0; i < NUM_AST; i++)
+  {
+    if (ast[i].active == 1)
+    {
+      draw_shape(ast[i].num_edges, ast[i].pointarr, 0);
+      rotate(1, ast[i].center_x, ast[i].center_y, ast[i].num_edges, ast[i].pointarr);
+      if (move(ast[i].direction, ast[i].speed, ast[i].num_edges, ast[i].pointarr) == 1)
+      {
+        draw_shape(ast[i].num_edges, ast[i].pointarr, 1);
+      }
+      else
+      {
+        ast[i].active = 0;
+      }
+    }
+  }
   //Draw player 1
   draw_shape(3, p1, 1);
-  /* float p1centerx = get_center_x(3, p1);
-  float p1centery = get_center_y(3, p1);
-  draw(p1centerx, p1centerx + 1, p1centery, p1centery + 1, 1); */
   display_update();
 }

@@ -26,11 +26,14 @@ void quicksleep(int cyc);
 void tick( unsigned int * timep );
 
 extern const float PI;
+int random_int(int min, int max);
 int abs(int num);
 int round(float num);
 float cos(float deg);
 float sin(float deg);
+float sqroot(float square);
 void rotate(float angle, float xcenter, float ycenter, int size, float* pointarr);
+uint8_t line_circle_collision(float xstart, float ystart, float xend, float yend, float xcircle, float ycircle, float rcircle);
 uint8_t move(float angle, float magnitude, int size, float* pointarr);
 uint8_t shape_within_bounds(int size, float* pointarr);
 int get_center_x(int size, float pointarr[]);
