@@ -2,30 +2,35 @@
 
 const float PI = 3.1415926535;
 
-struct Ship{
+#define SCREEN_WIDTH 32
+#define SCREEN_HEIGHT 16
+
+typedef struct ship{
     float xcenter;
     float ycenter;
     float points[6];
     float direction;
-};
+}ship;
 
-struct Ship p1;
+ship ships[10];
+
 
 void lab_init(){
-    p1.points[0] = 1;
-    p1.points[1] = 2;
-    p1.xcenter = get_center_x(3, p1.points);
+    ships[0].points[0] = 1;
+    ships[0].points[1] = 2;
+    ships[0].points[2] = 3;
+    ships[0].points[3] = 4;
 }
 
 
 
-__uint8_t scene[32][16];
+__uint8_t scene[SCREEN_WIDTH][SCREEN_HEIGHT];
 
 // prints scene model
 void print_game(){
     int x, y;
-    for(x=0; x<16; x++){
-        for(y=0; y<32; y++){
+    for(x=0; x<SCREEN_HEIGHT; x++){
+        for(y=0; y<SCREEN_WIDTH; y++){
             printf("%u ", scene[y][x]);
         }
         printf("\n");
@@ -44,6 +49,7 @@ int abs(int num){
 
 // generates a random number between min (inclusive) and max (exclusive)
 int random_int(int seed, int min, int max){
+    seed == 0? seed =1: 1;
     seed ^= (seed << 13);
     seed ^= (seed >> 7);
     seed ^= (seed << 17);
@@ -111,9 +117,9 @@ void draw_line(float xstart, float ystart, float xend, float yend){
     float y; //holds current y value across iterations
     float x; //holds current x value across iterations
  
-    // draw start and end pixels
-    scene[round(xstart)][round(ystart)] = 1;
-    scene[round(xend)][round(yend)] = 1;
+    // draw start and end pixels if they are on screen
+    if(round(xstart)>=0 & round(xstart)<SCREEN_WIDTH & round(ystart)>=0 & round(ystart)<SCREEN_HEIGHT) scene[round(xstart)][round(ystart)] = 1;
+    if(round(xend)>=0 & round(xend)<SCREEN_WIDTH & round(yend)>=0 & round(yend)<SCREEN_HEIGHT) scene[round(xend)][round(yend)] = 1;
 
     if(abs(xend-xstart) > abs(yend-ystart)){ // more lines between x
         if(xstart < xend){ // start at xstart and move forward
@@ -121,6 +127,8 @@ void draw_line(float xstart, float ystart, float xend, float yend){
             for(i = xstart+1; i < xend; i++){
                 y += slope;
                 yapprox = round(y);
+                // draw on-screen pixels
+                if((i>=0 & i<SCREEN_WIDTH) & (yapprox>=0 & yapprox<SCREEN_HEIGHT))
                 scene[i][yapprox] = 1;
             }
         }
@@ -129,6 +137,8 @@ void draw_line(float xstart, float ystart, float xend, float yend){
             for(i = xend+1; i < xstart; i++){
                 y += slope;
                 yapprox = round(y);
+                // draw on-screen pixels
+                if((i>=0 & i<SCREEN_WIDTH) & (yapprox>=0 & yapprox<SCREEN_HEIGHT))
                 scene[i][yapprox] = 1; 
             }
         }
@@ -139,6 +149,8 @@ void draw_line(float xstart, float ystart, float xend, float yend){
             for(i = ystart+1; i < yend; i++){
                 x += 1 / slope;
                 xapprox = round(x);
+                // draw on-screen pixels
+                if((xapprox>=0 & xapprox<SCREEN_WIDTH) & (i>=0 & i<SCREEN_HEIGHT))
                 scene[xapprox][i] = 1;
             }
         }
@@ -147,6 +159,8 @@ void draw_line(float xstart, float ystart, float xend, float yend){
             for(i = yend+1; i < ystart; i++){
                 x += 1 / slope;
                 xapprox = round(x);
+                // draw on-screen pixels
+                if((xapprox>=0 & xapprox<SCREEN_WIDTH) & (i>=0 & i<SCREEN_HEIGHT))
                 scene[xapprox][i] = 1;
             }
         }
@@ -214,9 +228,19 @@ void rotate(float angle, float xcenter, float ycenter, int size, float* pointarr
     }
 }
 
+void scale(float factor, float xcenter, float ycenter, int size, float* pointarr){
+    int i;
+    for(i=0; i<size; i++){
+        *pointarr = ((*pointarr - xcenter) * factor) + xcenter;
+        pointarr += 1;
+        *pointarr = ((*pointarr - ycenter) * factor) + ycenter;
+        pointarr += 1;
+    }
+}
+
 __uint8_t line_circle_collision(float xstart, float ystart, float xend, float yend, float xcircle, float ycircle, float rcircle){
     __uint8_t projOnLine; // holds bool after proj is calculated
-    
+     
     // project onto line
     float xline = xend - xstart;
     float yline = yend - ystart;
@@ -259,8 +283,8 @@ int main(void){
     
     // set all pixels of screen to 0
     int i; int j;
-    for(i=0; i<32; i++){
-        for(j=0; j<16; j++){
+    for(i=0; i<SCREEN_WIDTH; i++){
+        for(j=0; j<SCREEN_HEIGHT; j++){
             scene[i][j] = 0;
         }
     }
@@ -274,17 +298,25 @@ int main(void){
 
 
     // erase screen
-    for(i=0; i<32; i++){
-        for(j=0; j<16; j++){
+    for(i=0; i<SCREEN_WIDTH; i++){
+        for(j=0; j<SCREEN_HEIGHT; j++){
             scene[i][j] = 0;
         }
     }
 
-    rotate(-5, get_center_x(3, square), get_center_y(3, square), 3, square);
+    rotate(90, get_center_x(3, square), get_center_y(3, square), 3, square);
+    scale(3, get_center_x(3, square), get_center_y(3, square), 3, square);
     draw_shape(3, square);
     print_game(scene);
 
-    printf("collision: %u\n", line_circle_collision(-2,1, 2,0, 0,0, 1));
+    //printf("collision: %u\n", line_circle_collision(-2,1, 2,0, 0,0, 1));
+    
+    for(j=0; j<100; j++){
+        printf("%d\n", random_int(j, 0, 100));
+    }
+    
+
+    int y;
     return 0;
 }
 
