@@ -360,13 +360,16 @@ uint8_t line_circle_collision(float xstart, float ystart, float xend, float yend
     }
 }
 
-uint8_t move(float angle, float magnitude, int size, float *pointarr)
+uint8_t move(float angle, float magnitude, int size, float *pointarr, float *center_x, float *center_y)
 {
-  int i;
-  int offscreen, outofbounds;
+  int i, outofbounds;
+  int offscreen = 0;
   float motion_x = magnitude * cos(angle);
   float motion_y = magnitude * sin(angle);
   float new_val;
+
+  *center_x += motion_x;
+  *center_y += motion_y;
 
   for (i = 0; i < size; i++)
   {

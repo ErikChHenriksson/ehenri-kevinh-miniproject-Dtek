@@ -34,7 +34,7 @@ float sin(float deg);
 float sqroot(float square);
 void rotate(float angle, float xcenter, float ycenter, int size, float* pointarr);
 uint8_t line_circle_collision(float xstart, float ystart, float xend, float yend, float xcircle, float ycircle, float rcircle);
-uint8_t move(float angle, float magnitude, int size, float* pointarr);
+uint8_t move(float angle, float magnitude, int size, float* pointarr, float* center_x, float* center_y);
 uint8_t shape_within_bounds(int size, float* pointarr);
 int get_center_x(int size, float pointarr[]);
 int get_center_y(int size, float pointarr[]);

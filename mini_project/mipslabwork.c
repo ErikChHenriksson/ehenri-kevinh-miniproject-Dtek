@@ -68,23 +68,23 @@ void labinit(void)
     projs[i].onscreen = 0;
   }
   //Positions of first asteroid
-  ast[1].pointarr[0] = 110;
-  ast[1].pointarr[1] = 10;
-  ast[1].pointarr[2] = 115;
-  ast[1].pointarr[3] = 15;
-  ast[1].pointarr[4] = 112;
-  ast[1].pointarr[5] = 22;
-  ast[1].pointarr[6] = 108;
-  ast[1].pointarr[7] = 22;
-  ast[1].pointarr[8] = 105;
-  ast[1].pointarr[9] = 15;
+  ast[0].pointarr[0] = 110;
+  ast[0].pointarr[1] = 10;
+  ast[0].pointarr[2] = 115;
+  ast[0].pointarr[3] = 15;
+  ast[0].pointarr[4] = 112;
+  ast[0].pointarr[5] = 22;
+  ast[0].pointarr[6] = 108;
+  ast[0].pointarr[7] = 22;
+  ast[0].pointarr[8] = 105;
+  ast[0].pointarr[9] = 15;
   //Setup asteroids
   int k;
   for (k = 0; k < NUM_AST; k++)
   {
     ast[k].num_edges = 5;
     ast[k].direction = 180;
-    ast[k].speed = 1;
+    ast[k].speed = 0.3;
     ast[k].active = 1;
     ast[k].center_x = get_center_x(ast[k].num_edges, ast[k].pointarr);
     ast[k].center_y = get_center_y(ast[k].num_edges, ast[k].pointarr);
@@ -208,7 +208,7 @@ void labwork(void)
       //Erase old projectile
       draw_shape(projs[i].num_edges, projs[i].pointarr, 0);
       //Move projectile if projectile is going to be within bounds
-      if (move(projs[i].direction, projs[i].speed, projs[i].num_edges, projs[i].pointarr) == 1) //If 1, has been moved.
+      if (move(projs[i].direction, projs[i].speed, projs[i].num_edges, projs[i].pointarr, 0, 0) == 1) //If 1, has been moved.
       {
         //Draw projectile
         draw_shape(projs[i].num_edges, projs[i].pointarr, 1);
@@ -240,9 +240,10 @@ void labwork(void)
   {
     if (ast[i].active == 1)
     {
+      //Erase
       draw_shape(ast[i].num_edges, ast[i].pointarr, 0);
       rotate(1, ast[i].center_x, ast[i].center_y, ast[i].num_edges, ast[i].pointarr);
-      if (move(ast[i].direction, ast[i].speed, ast[i].num_edges, ast[i].pointarr) == 1)
+      if (move(ast[i].direction, ast[i].speed, ast[i].num_edges, ast[i].pointarr, &ast[i].center_x, &ast[i].center_y) == 1)
       {
         draw_shape(ast[i].num_edges, ast[i].pointarr, 1);
       }
