@@ -164,6 +164,37 @@ void display_update(void)
   }
 }
 
+void display_update_slow(void)
+{
+  int i, j, k;
+  uint8_t encodedPixels;
+
+  for (i = 0; i < 4; i++)
+  { // for each quadrant
+    DISPLAY_CHANGE_TO_COMMAND_MODE;
+    spi_send_recv(0x22);
+    spi_send_recv(i);
+
+    spi_send_recv(0x0);
+    spi_send_recv(0x10);
+
+    DISPLAY_CHANGE_TO_DATA_MODE;
+
+    for (j = 0; j < BOUNDS_X; j++)
+    { // for each column
+
+      // encode the column into 8 bits
+      encodedPixels = 0;
+      for (k = 0; k < 8; k++)
+      {
+        encodedPixels |= game_state[j][8 * i + k] << k;
+      }
+      spi_send_recv(encodedPixels); //send encoded column to buffer
+    quicksleep(25000);
+    }
+  }
+}
+
 void display_update_string(void)
 {
   int i, j, k;
@@ -642,17 +673,44 @@ float get_center_y(int size, float pointarr[])
 
 //BEGIN GAME STATE FUNCTIONS
 
+void intro_screen(void)
+{
+  int buttons = getbtns();
+  int x, y;
+   for (x = 0; x < BOUNDS_X; x++)
+  {
+    for (y = 0; y < BOUNDS_X; y++)
+    {
+      game_state[x][y] = 0;
+    }
+  }
+  display_update();
+  for (x = 0; x < 128; x++)
+  {
+    for (y = 0; y < 32; y++)
+    {
+      game_state[x][y] = ufo[x][y];
+    }
+  }
+  display_update_slow();
+  quicksleep(3000000);
+  while (!(buttons & 7)) //Wait for pressing of either BTN2, BTN3 or BTN 4
+  {
+    buttons = getbtns();
+  }
+}
+
 void main_menu(void)
 {
   int buttons = getbtns();
   //Display onto screen
-  display_string(0, "ASTEROID DEFENDR");
-  display_string(1, "Controls:");
-  display_string(2, "BTN3,BTN4:Rotate");
-  display_string(3, "BTN2: Fire");
+  display_string(0, "CONTROLS");
+  display_string(1, "");
+  display_string(2, "BTN3,BTN4:ROTATE");
+  display_string(3, "BTN2:     FIRE");
   display_update_string();
-  quicksleep(3000000); //A small delay to prevent people from accidentaly pressing the wrong button
-  //Wait for button pressing
+  quicksleep(5000000); //A small delay to prevent people from accidentaly pressing the wrong button
+  //Wait for button pressing  
   while (!(buttons & 7)) //Wait for pressing of either BTN2, BTN3 or BTN 4
   {
     buttons = getbtns();
@@ -676,8 +734,8 @@ void game_over(int score)
     i2c_start();
   } while (!i2c_send(EEPROM_read));
   high_score = i2c_recv(); //Attempt to read data
-  i2c_nack(); //Send not acknowledged response
-  i2c_stop(); //Send stop signal
+  i2c_nack();              //Send not acknowledged response
+  i2c_stop();              //Send stop signal
 
   if (score > high_score) //New high score?
   {
@@ -687,10 +745,10 @@ void game_over(int score)
     {
       i2c_start();
     } while (!i2c_send(EEPROM_write));
-    i2c_send(0x00); //Send MSB of register address
-    i2c_send(0x00); //Send LSB of register address
+    i2c_send(0x00);           //Send MSB of register address
+    i2c_send(0x00);           //Send LSB of register address
     i2c_send((uint8_t)score); //Send actual data
-    i2c_stop();     //Send stop signal
+    i2c_stop();               //Send stop signal
   }
 
   //Display onto screen

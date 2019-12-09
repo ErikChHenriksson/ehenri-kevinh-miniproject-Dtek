@@ -62,8 +62,9 @@ int main(void)
 	I2C1CONSET = 1 << 15; // ON = 1
 	uint16_t temp = I2C1RCV;		  //Clear receive buffer
 
-	reset_game();
+	intro_screen();
 	main_menu();
+	reset_game();
 
 	while (1)
 	{

@@ -8,6 +8,7 @@ void display_image(int x, const uint8_t *data);
 void display_init(void);
 void display_string(int line, char *s);
 void display_update(void);
+void display_update_slow(void);
 void display_update_string(void);
 uint8_t spi_send_recv(uint8_t data);
 /* I2C Functions */
@@ -27,6 +28,7 @@ void draw_shape(int size, float pointarr[], uint8_t color);
 void game_loop(void);
 void quicksleep(int cyc);
 /* Gamestate functions */
+void intro_screen(void);
 void main_menu(void);
 void game_over(int score);
 /* Math functions */
@@ -63,8 +65,8 @@ void display_debug(volatile int *const addr);
 
 /* Declare bitmap array containing font */
 extern const uint8_t const font[128 * 8];
-/* Declare bitmap array containing icon */
-extern const uint8_t const icon[128];
+/* Declare bitmap array containing ufo */
+extern const uint8_t const ufo[128][32];
 /* Declare text buffer for display output */
 extern char textbuffer[4][16];
 extern uint8_t game_state[BOUNDS_X][BOUNDS_Y];
