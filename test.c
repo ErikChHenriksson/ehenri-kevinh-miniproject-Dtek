@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <time.h>
 
 const float PI = 3.1415926535;
 
@@ -64,7 +65,7 @@ float sqroot(float square)
     float root=square/3;
     int i;
     if (square <= 0) return 0;
-    for (i=0; i<32; i++)
+    for (i=0; i<8; i++)
         root = (root + square / root) / 2;
     return root;
 }
@@ -219,7 +220,7 @@ void rotate(float angle, float xcenter, float ycenter, int size, float* pointarr
         ynew = (s*xcentered) + (c*ynew);
 
         
-        printf("(%f, %f)\n", xnew + xcenter, ynew + ycenter);
+        //printf("(%f, %f)\n", xnew + xcenter, ynew + ycenter);
         *pointarr = ynew + ycenter;
         pointarr -=1;
         *pointarr = xnew + xcenter;
@@ -279,6 +280,47 @@ __uint8_t line_circle_collision(float xstart, float ystart, float xend, float ye
 }
 
 
+__uint8_t move(float angle, float magnitude, int size, float *pointarr, float center_x, float center_y)
+{
+  int i;
+  int offscreen, outofbounds;
+  float motion_x = magnitude * cos(angle);
+  float motion_y = magnitude * sin(angle);
+  float new_val;
+
+  center_x += motion_x;
+  center_y += motion_y;
+
+  offscreen = 0;
+  for (i = 0; i < size; i++)
+  {
+    //Assume out of bounds
+    outofbounds=0;
+    //X value
+    new_val = *pointarr + motion_x;
+    if (new_val < 0 || new_val > SCREEN_WIDTH-1)
+    {
+      outofbounds = 1;  //edge is out of bounds
+    }
+    *pointarr = new_val;
+
+    pointarr += 1; //Move on to y value
+    new_val = *pointarr + motion_y;
+    if (new_val < 0 || new_val > SCREEN_HEIGHT-1)
+    {
+      outofbounds = 1;;
+    }
+    *pointarr = new_val;
+    pointarr += 1;
+    offscreen += outofbounds;  //Increment out of bounds counter
+  }
+  printf("offscreen: %d\n", offscreen);
+  if (offscreen == size){
+    return 0; //All edges are off screen.
+  }
+  return 1;
+}
+
 int main(void){
     
     // set all pixels of screen to 0
@@ -289,6 +331,7 @@ int main(void){
         }
     }
 
+    
     // create and draw a square
     float square[] = {10, 3, 8, 13, 12, 13};
     draw_shape(3, square);
@@ -296,7 +339,7 @@ int main(void){
     printf("\n\n");
 
 
-
+    
     // erase screen
     for(i=0; i<SCREEN_WIDTH; i++){
         for(j=0; j<SCREEN_HEIGHT; j++){
@@ -304,19 +347,27 @@ int main(void){
         }
     }
 
-    rotate(90, get_center_x(3, square), get_center_y(3, square), 3, square);
-    scale(3, get_center_x(3, square), get_center_y(3, square), 3, square);
-    draw_shape(3, square);
-    print_game(scene);
+    //rotate(90, get_center_x(3, square), get_center_y(3, square), 3, square);
+    //scale(3, get_center_x(3, square), get_center_y(3, square), 3, square);
+    //if(!move(0, 30, 3, square)){
+    //    printf("FULLY OFF SCREEN\n");
+    //}
+    //draw_shape(3, square);
+    //print_game(scene);
 
     //printf("collision: %u\n", line_circle_collision(-2,1, 2,0, 0,0, 1));
-    
-    for(j=0; j<100; j++){
-        printf("%d\n", random_int(j, 0, 100));
-    }
-    
 
-    int y;
+    
+    clock_t start = clock(), diff;
+    for(i = 0; i< 1000000; i++){
+        //draw_shape(3, square);
+        //line_circle_collision(-2,1, 2,0, 0,0, i);
+        //rotate(90, get_center_x(3, square), get_center_y(3, square), 3, square);
+    }
+    diff = clock() - start;
+    
+    int msec = diff * 1000 / CLOCKS_PER_SEC;
+    printf("Time taken %d seconds %d milliseconds\n", msec/1000, msec%1000);
     return 0;
 }
 
