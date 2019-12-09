@@ -1,28 +1,24 @@
-/* mipslabwork.c
+/* This file contains the functions for game initialization, game loop and interrupts as well as their required data */
 
-   This file written 2015 by F Lundevall
-   Updated 2017-04-21 by F Lundevall
+#include <stdint.h>   /* Declarations of uint_32 and the like */
+#include <pic32mx.h>  /* Declarations of system-specific addresses etc */
+#include "miniproj.h" /* Declatations for the game */
 
-   This file should be changed by YOU! So you must
-   add comment(s) here with your name(s) and date(s):
+#define NUM_PROJS 8
+#define NUM_AST 3
+#define TURNING_SPEED 5
 
-   This file modified 2017-04-31 by Ture Teknolog 
-
-   For copyright and licensing, see file COPYING */
-
-#include <stdint.h>  /* Declarations of uint_32 and the like */
-#include <pic32mx.h> /* Declarations of system-specific addresses etc */
-#include "mipslab.h" /* Declatations for these labs */
-
-#define NUM_PROJS 3
-#define NUM_AST 1
-
+//Score counter
+int score;
+//Used for interrupt
 int timeoutcount = 0;
-//Array chowing the current state of the game
-uint8_t game_state[128][32];
+//Array showing the current state of the game
+uint8_t game_state[BOUNDS_X][BOUNDS_Y];
 //Player 1
-float p1[] = {64, 12, 61, 22, 67, 22};
-float p1angle = 270;
+float p1[6];
+float p1angle;
+float pcenter_x = 64;
+float pcenter_y = 18.66666667;
 
 struct proj
 {
@@ -45,15 +41,35 @@ struct asteroid
   float center_y;
 } ast[NUM_AST];
 
-//float staticasteroid[] = {120, 10, 125, 13, 123, 20, 117, 20, 115, 13};
-
 uint8_t ammo = 0xff; //To fill RE0 to RE7 LEDs
 uint8_t reloading = 0;
 uint8_t shootingdelay = 0;
 
-/* Lab-specific initialization goes here */
-void labinit(void)
+/* Resets the state of the game */
+void reset_game(void)
 {
+  //Set score to 0
+  score = 0;
+  //Set gamestate to 0
+  int x, y;
+  for (x = 0; x < BOUNDS_X; x++)
+  {
+    for (y = 0; y < BOUNDS_X; y++)
+    {
+      game_state[x][y] = 0;
+    }
+  }
+  //Setup player
+  p1[0] = 64;
+  p1[1] = 12;
+  p1[2] = 61;
+  p1[3] = 22;
+  p1[4] = 67;
+  p1[5] = 22;
+  p1angle = 270;
+  //Reset ammo
+  ammo = 0xff;
+  PORTESET = ammo;
   //Setup projectiles
   int i, j;
   for (i = 0; i < NUM_PROJS; i++)
@@ -67,28 +83,27 @@ void labinit(void)
     projs[i].speed = 1;
     projs[i].onscreen = 0;
   }
-  //Positions of first asteroid
-  ast[0].pointarr[0] = 110;
-  ast[0].pointarr[1] = 10;
-  ast[0].pointarr[2] = 115;
-  ast[0].pointarr[3] = 15;
-  ast[0].pointarr[4] = 112;
-  ast[0].pointarr[5] = 22;
-  ast[0].pointarr[6] = 108;
-  ast[0].pointarr[7] = 22;
-  ast[0].pointarr[8] = 105;
-  ast[0].pointarr[9] = 15;
   //Setup asteroids
-  int k;
+  int k, l;
   for (k = 0; k < NUM_AST; k++)
   {
     ast[k].num_edges = 5;
+    ast[k].pointarr[0] = -1;     //Set X1
+    ast[k].pointarr[1] = -1 - 2; //Set Y1
+    ast[k].pointarr[2] = -1 + 3; //Set X2
+    ast[k].pointarr[3] = -1 - 1; //Set Y2
+    ast[k].pointarr[4] = -1 + 2; //Set X3
+    ast[k].pointarr[5] = -1 + 2; //Set Y3
+    ast[k].pointarr[6] = -1 - 2; //Set X4
+    ast[k].pointarr[7] = -1 + 2; //Set Y4
+    ast[k].pointarr[8] = -1 - 3; //Set X5
+    ast[k].pointarr[9] = -1 - 1; //Set Y5
     ast[k].direction = 180;
     ast[k].speed = 0.3;
-    ast[k].active = 1;
-    ast[k].center_x = get_center_x(ast[k].num_edges, ast[k].pointarr);
-    ast[k].center_y = get_center_y(ast[k].num_edges, ast[k].pointarr);
-    ast[k].radius = ast[k].center_y - ast[k].pointarr[1];
+    ast[k].active = 0;
+    ast[k].center_x = -1;
+    ast[k].center_y = -1;
+    ast[k].radius = 2;
   }
 
   TRISD |= 0xfe0; // set bits 5-11 of PORTD to input mode
@@ -138,25 +153,23 @@ void user_isr(void)
 }
 
 /* This function is called repetitively from the main program */
-void labwork(void)
+void game_loop(void)
 {
-  //prime = nextprime( prime );
-  //display_string( 0, itoaconv( prime ) );
   int buttons = getbtns();
   int switches = getsw();
   //BUTTON 4
   if ((buttons & 4))
   {
     draw_shape(3, p1, 0); //Erase old drawing of p1
-    rotate(-2, 64, 18.666666667, 3, p1);
-    p1angle -= 2;
+    rotate(-TURNING_SPEED, pcenter_x, pcenter_y, 3, p1);
+    p1angle -= TURNING_SPEED;
   }
   //BUTTON 3
   if ((buttons & 2))
   {
     draw_shape(3, p1, 0); //Erase old drawing of p1
-    rotate(2, 64, 18.666666667, 3, p1);
-    p1angle += 2;
+    rotate(TURNING_SPEED, pcenter_x, pcenter_y, 3, p1);
+    p1angle += TURNING_SPEED;
   }
 
   //BUTTON 2
@@ -212,11 +225,17 @@ void labwork(void)
       {
         //Draw projectile
         draw_shape(projs[i].num_edges, projs[i].pointarr, 1);
-
-        if (line_circle_collision(projs[i].pointarr[0], projs[i].pointarr[1], projs[i].pointarr[2], projs[i].pointarr[3], ast[0].center_x, ast[0].center_y, ast[0].radius))
+        int j;
+        for (j = 0; j < NUM_AST; j++)
         {
-          ammo = 0xff;
-          PORTESET = ammo;
+          //Checks if it hit any active asteroid
+          if (ast[j].active == 1 && line_circle_collision(projs[i].pointarr[0], projs[i].pointarr[1], projs[i].pointarr[2], projs[i].pointarr[3], ast[j].center_x, ast[j].center_y, ast[j].radius))
+          {
+            //Hit! Update score
+            score++;
+            draw_shape(ast[j].num_edges, ast[j].pointarr, 0);
+            ast[j].active = 0;
+          }
         }
       }
       else //move() func returned 0, which means proj would have been moved outside the screen. Move proj to default and do not draw. Set as off screen.
@@ -232,25 +251,33 @@ void labwork(void)
     }
   }
 
-  // MOVE ASTEROID
-  //Erase
-
-  //Move and draw if successfully moved.
+  //MOVE ASTEROIDS
   for (i = 0; i < NUM_AST; i++)
   {
-    if (ast[i].active == 1)
+    if (ast[i].active == 1) //If active, move the asteroid
     {
-      //Erase
       draw_shape(ast[i].num_edges, ast[i].pointarr, 0);
       rotate(1, ast[i].center_x, ast[i].center_y, ast[i].num_edges, ast[i].pointarr);
+      //Move asteroid if  within screen
       if (move(ast[i].direction, ast[i].speed, ast[i].num_edges, ast[i].pointarr, &ast[i].center_x, &ast[i].center_y) == 1)
       {
         draw_shape(ast[i].num_edges, ast[i].pointarr, 1);
+        //Check if there is a collision with p1
+        if ((line_circle_collision(p1[0], p1[1], p1[2], p1[3], ast[i].center_x, ast[i].center_y, ast[i].radius)) || (line_circle_collision(p1[2], p1[3], p1[4], p1[5], ast[i].center_x, ast[i].center_y, ast[i].radius)) || (line_circle_collision(p1[4], p1[5], p1[0], p1[1], ast[i].center_x, ast[i].center_y, ast[i].radius)))
+        {
+          game_over(score);
+          reset_game();
+        }
       }
-      else
+      else //Outside of screen. Set to inactive
       {
         ast[i].active = 0;
       }
+    }
+    else
+    { //If unactive, spawn the asteroid somewhere else on the screen and set it to active.
+      spawn_asteroid(&ast[i].radius, &ast[i].direction, &ast[i].speed, &ast[i].center_x, &ast[i].center_y, ast[i].num_edges, ast[i].pointarr);
+      ast[i].active = 1;
     }
   }
   //Draw player 1

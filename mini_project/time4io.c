@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <pic32mx.h>
-#include "mipslab.h"
+#include "miniproj.h"
 
 int getsw(void);
 int getbtns(void);
